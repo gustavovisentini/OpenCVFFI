@@ -87,7 +87,9 @@ class _MyAppState extends State<MyApp> {
     StreamSubscription? sub;
 
     // Listeting for messages on port
-    sub = port.listen((_) async {
+    sub = port.listen((data) async {
+      print(data);
+
       // Cancel a subscription after message received called
       await sub?.cancel();
 

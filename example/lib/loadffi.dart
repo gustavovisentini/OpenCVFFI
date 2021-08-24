@@ -4,12 +4,13 @@ import 'package:ffi/ffi.dart';
 
 // C function signatures
 typedef VersionFunc = ffi.Pointer<Utf8> Function();
-typedef ProcessImageFunc = ffi.Void Function(
+typedef ProcessImageFunc = ffi.Pointer<Utf8> Function(
     ffi.Pointer<Utf8>, ffi.Pointer<Utf8>);
 
 // Dart function signatures
 typedef _VersionFunc = ffi.Pointer<Utf8> Function();
-typedef _ProcessImageFunc = void Function(ffi.Pointer<Utf8>, ffi.Pointer<Utf8>);
+typedef _ProcessImageFunc = ffi.Pointer<Utf8> Function(
+    ffi.Pointer<Utf8>, ffi.Pointer<Utf8>);
 
 // Getting a library that holds needed symbols
 ffi.DynamicLibrary _lib = Platform.isAndroid
@@ -34,6 +35,8 @@ class ProcessImageArguments {
   ProcessImageArguments(this.inputPath, this.outputPath);
 }
 
-void processImage(ProcessImageArguments args) {
-  _processImage(args.inputPath.toNativeUtf8(), args.outputPath.toNativeUtf8());
+String processImage(ProcessImageArguments args) {
+  return _processImage(
+          args.inputPath.toNativeUtf8(), args.outputPath.toNativeUtf8())
+      .toDartString();
 }
