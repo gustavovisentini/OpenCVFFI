@@ -7,3 +7,4 @@
 build/
 
 .cxx
+android/src/main/jniLibs
