@@ -53,14 +53,28 @@ class _MyAppState extends State<MyApp> {
   }
 
   bool _isProcessed = false;
+  bool _loading = false;
   bool _isWorking = false;
   Image? _image = null;
 
   Future<void> takeImageAndProcess() async {
     final picker = new ImagePicker();
+
     // final image =
     //     await picker.pickImage(source: ImageSource.gallery, imageQuality: 100);
     var image = await picker.getImage(source: ImageSource.gallery);
+    var bytes = await image?.readAsBytes();
+
+    setState(() {
+      _loading = true;
+
+      if (bytes != null)
+        _image = Image.memory(
+          bytes,
+          width: 300,
+          height: 300,
+        );
+    });
 
     print(image?.path);
 
@@ -72,41 +86,85 @@ class _MyAppState extends State<MyApp> {
       _isWorking = true;
     });
 
+    var now = DateTime.now();
+
     Directory tempDir = await getTemporaryDirectory();
-    String tempPath = tempDir.path + '/output.png';
+    // String tempPath =
+    //     tempDir.path + '/output-${now.millisecondsSinceEpoch}.png';
+    String tempPath = tempDir.path + '/opencv_process_output.png';
+
+    final args = ProcessImageArguments(image.path, tempPath);
+    final retorno = processImage(args);
+    print('retorno');
+    print(retorno);
+
+    setState(() {
+      _isProcessed = true;
+      _isWorking = false;
+      _loading = false;
+
+      print(tempPath);
+
+      if (!File(tempPath).existsSync()) {
+        print('arquivo output nao encontrado');
+        return;
+      }
+
+      File processed = File(tempPath);
+
+      final bytes = processed.readAsBytesSync();
+
+      _image = Image.memory(
+        bytes,
+        width: 300,
+        height: 300,
+      );
+
+      print(_image);
+    });
 
     // Creating a port for communication with isolate and arguments for entry point
-    final port = ReceivePort();
-    final args = ProcessImageArguments(image.path, tempPath);
+    // final port = ReceivePort();
+    // final args = ProcessImageArguments(image.path, tempPath);
 
-    // Spawning an isolate
-    Isolate.spawn<ProcessImageArguments>(processImage, args,
-        onError: port.sendPort, onExit: port.sendPort);
+    // // Spawning an isolate
+    // Isolate.spawn<ProcessImageArguments>(processImage, args,
+    //     onError: port.sendPort, onExit: port.sendPort, errorsAreFatal: false);
 
-    // Making a variable to store a subscription in
-    StreamSubscription? sub;
+    // // Making a variable to store a subscription in
+    // StreamSubscription? sub;
 
-    // Listeting for messages on port
-    sub = port.listen((data) async {
-      print(data);
+    // // Listeting for messages on port
+    // sub = port.listen((data) async {
+    //   print(data);
 
-      // Cancel a subscription after message received called
-      await sub?.cancel();
+    //   // Cancel a subscription after message received called
+    //   await sub?.cancel();
 
-      setState(() {
-        _isProcessed = true;
-        _isWorking = false;
+    //   setState(() {
+    //     _isProcessed = true;
+    //     _isWorking = false;
 
-        print(tempPath);
-        File processed = File(tempPath);
+    //     print(tempPath);
 
-        final bytes = processed.readAsBytesSync();
+    //     if (!File(tempPath).existsSync()) {
+    //       print('arquivo output nao encontrado');
+    //       return;
+    //     }
 
-        _image = Image.memory(bytes);
+    //     File processed = File(tempPath);
 
-        print(_image);
-      });
-    });
+    //     final bytes = processed.readAsBytesSync();
+
+    //     _image = Image.memory(
+    //       bytes,
+    //       width: 300,
+    //       height: 300,
+    //     );
+
+    //     print(_image);
+    //   });
+    // });
   }
 
   @override
@@ -116,20 +174,22 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('Plugin example app'),
         ),
-        body: Center(
-            child: Column(
-          children: [
-            TextButton(
-              onPressed: () {
-                takeImageAndProcess();
-              },
-              child: Text('Processar'),
-            ),
-            _image != null ? _image! : Text(''),
-            Text(
-                'Running on: $_platformVersion\nOpenCV Version: ${opencvVersion()}'),
-          ],
-        )),
+        body: _loading
+            ? Text('Carregando')
+            : Center(
+                child: Column(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      takeImageAndProcess();
+                    },
+                    child: Text('Processar'),
+                  ),
+                  _image != null ? _image! : Text(''),
+                  Text(
+                      'Running on: $_platformVersion\nOpenCV Version: ${opencvVersion()}'),
+                ],
+              )),
       ),
     );
   }
